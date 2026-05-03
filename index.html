@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>IKIY GASIMA - PRESTIGE SANCTUARY</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@700;900&family=Plus+Jakarta+Sans:wght@200;400;600&display=swap');
+
+        :root {
+            --gold: linear-gradient(135deg, #bf953f, #fcf6ba, #b38728, #fbf5b7, #aa771c);
+            --gold-glow: 0 0 15px rgba(191, 149, 63, 0.4);
+        }
+
+        * { 
+            margin: 0; padding: 0; box-sizing: border-box; 
+            -webkit-tap-highlight-color: transparent;
+            user-select: none; -webkit-user-select: none;
+        }
+
+        body {
+            background-color: #000;
+            color: #fff;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        #web-canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; opacity: 0.4; }
+
+        .edge-g { position: fixed; top: 0; height: 100%; width: 15%; pointer-events: none; z-index: 1; }
+        .l-edge { left: 0; background: linear-gradient(to right, rgba(191,149,63,0.1), transparent); }
+        .r-edge { right: 0; background: linear-gradient(to left, rgba(191,149,63,0.1), transparent); }
+
+        .watermark {
+            position: fixed; top: 20px; width: 100%; text-align: center;
+            font-family: 'Cinzel', serif; background: var(--gold);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            font-size: 0.65rem; letter-spacing: 8px; font-weight: 900; z-index: 100;
+        }
+
+        .container {
+            height: 100vh; display: flex; justify-content: center; align-items: center;
+            padding: 20px; padding-bottom: 110px;
+        }
+
+        .ui-panel {
+            background: rgba(255, 255, 255, 0.01);
+            border: 1px solid rgba(255, 215, 0, 0.15);
+            border-radius: 40px;
+            padding: 30px 20px;
+            width: 100%; max-width: 360px;
+            backdrop-filter: blur(30px);
+            text-align: center; position: relative;
+            z-index: 10;
+        }
+
+        .word-display {
+            min-height: 240px; display: flex; flex-wrap: wrap;
+            justify-content: center; align-content: center; gap: 7px; margin-bottom: 15px;
+        }
+
+        .word {
+            opacity: 0; filter: blur(10px); transform: translateY(8px);
+            font-size: 0.9rem; font-weight: 200;
+            animation: wAppear 0.5s ease-out forwards;
+        }
+
+        @keyframes wAppear { to { opacity: 1; filter: blur(0); transform: translateY(0); } }
+
+        .hint { font-size: 0.55rem; color: #666; margin-bottom: 10px; letter-spacing: 1px; }
+
+        .btn-gold {
+            background: var(--gold); color: #000; border: none;
+            padding: 12px 30px; border-radius: 50px;
+            font-family: 'Cinzel', serif; font-weight: 900;
+            font-size: 0.6rem; cursor: pointer; box-shadow: var(--gold-glow);
+            letter-spacing: 1.5px;
+        }
+
+        .view { display: none; width: 100%; animation: fIn 0.5s ease; }
+        .view.active { display: block; }
+
+        @keyframes fIn { from { opacity: 0; } to { opacity: 1; } }
+
+        .scroll-list { height: 320px; overflow-y: auto; margin-top: 15px; padding-right: 5px; }
+
+        .card {
+            background: rgba(255, 255, 255, 0.03); margin-bottom: 12px;
+            padding: 15px; border-radius: 20px; text-align: left;
+            border: 1px solid rgba(255, 215, 0, 0.08); cursor: pointer;
+        }
+
+        .card b { color: #ffd700; font-size: 0.7rem; display: block; margin-bottom: 4px; }
+        .card p { font-size: 0.75rem; color: #ccc; line-height: 1.5; }
+
+        .modal-overlay {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.98); z-index: 5000; padding: 40px 20px;
+        }
+
+        textarea {
+            width: 100%; height: 150px; background: #050505; border: 1px solid #222;
+            color: white; padding: 15px; border-radius: 20px; font-size: 0.8rem; margin: 15px 0;
+            outline: none;
+        }
+
+        .nav-dock {
+            position: fixed; bottom: 25px; left: 50%; transform: translateX(-50%);
+            background: rgba(5, 5, 5, 0.95); border: 1px solid rgba(191, 149, 63, 0.3);
+            border-radius: 50px; display: flex; gap: 35px; padding: 12px 30px;
+            z-index: 1000; backdrop-filter: blur(20px);
+        }
+
+        .tab { display: flex; flex-direction: column; align-items: center; cursor: pointer; }
+        .s { width: 10px; height: 10px; border: 1.5px solid #444; margin-bottom: 6px; }
+        .c { border-radius: 50%; }
+        .d { transform: rotate(45deg); }
+
+        .tab.active .s { border-color: #ffd700; background: #ffd700; box-shadow: 0 0 10px #ffd700; }
+        .tab.active span { color: #ffd700; }
+        .tab span { font-size: 0.45rem; font-family: 'Cinzel'; color: #444; font-weight: 700; }
+    </style>
+</head>
+<body oncontextmenu="return false;">
+
+    <div class="l-edge edge-g"></div>
+    <div class="r-edge edge-g"></div>
+    <div class="watermark">IKIY GASIMA PRESTIGE</div>
+    <canvas id="web-canvas"></canvas>
+
+    <div class="container">
+        <div class="ui-panel">
+            
+            <div id="note-v" class="view active">
+                <h3 style="font-family:'Cinzel'; color:#ffd700; font-size:0.8rem; margin-bottom:15px;">WELCOME TO SANCTUARY</h3>
+                <p style="font-size:0.7rem; color:#aaa; line-height:1.6; margin-bottom:20px; text-align:justify;">
+                    Tempat ini dibuat khusus buat lu yang lagi butuh sandaran mental. <br><br>
+                    <b>Home:</b> Dengerin kata-kata motivasi yang bakal bangkitin semangat lu lagi.<br>
+                    <b>Global:</b> Tumpahin keluhan lu secara anonim, biar dunia denger dan kasih solusi.<br>
+                    <b>Inbox:</b> Cek respon atau solusi dari orang lain khusus buat lu.
+                </p>
+                <button class="btn-gold" onclick="goNext('note-v', 'setup-v')">GAS, LANJUT</button>
+            </div>
+
+            <div id="setup-v" class="view">
+                <h3 style="font-family:'Cinzel'; color:#ffd700; font-size:0.8rem; margin-bottom:15px;">SIAPA NAMA LU?</h3>
+                <input id="u-name" placeholder="Panggil gue..." style="width:100%; background:#000; border:1px solid #333; color:white; padding:15px; border-radius:15px; text-align:center; margin-bottom:20px; outline:none;">
+                <button class="btn-gold" onclick="saveUser()">MASUK SANCTUARY</button>
+            </div>
+
+            <div id="home-v" class="view">
+                <div class="word-display" id="w-target"></div>
+                <div class="hint">Pencet tulisan di bawah buat kata-kata baru</div>
+                <button class="btn-gold" onclick="nextQ()">LAGI, BRO</button>
+            </div>
+
+            <div id="global-v" class="view">
+                <h3 style="font-family:'Cinzel'; color:#ffd700; font-size:0.6rem; letter-spacing:4px;">GLOBAL SANCTUARY</h3>
+                <div class="scroll-list" id="g-list"></div>
+                <div style="margin-top:10px; display:flex; gap:8px;">
+                    <input id="g-in" placeholder="Lagi ada masalah apa?" style="flex:1; background:rgba(0,0,0,0.5); border:1px solid #222; color:white; padding:12px; border-radius:15px; font-size:0.75rem; outline:none;">
+                    <button class="btn-gold" onclick="pG()" style="padding:10px 15px;">KIRIM</button>
+                </div>
+            </div>
+
+            <div id="inbox-v" class="view">
+                <h3 style="font-family:'Cinzel'; color:#ffd700; font-size:0.6rem; letter-spacing:4px;">KOTAK PRIBADI</h3>
+                <div class="scroll-list" id="i-list"></div>
+            </div>
+
+        </div>
+    </div>
+
+    <div id="r-modal" class="modal-overlay">
+        <div class="ui-panel" style="max-width: 100%; border:none;">
+            <h4 id="rt" style="color:#ffd700; font-size:0.8rem;"></h4>
+            <p id="rd" style="font-size:0.75rem; color:#888; margin-top:8px;"></p>
+            <textarea id="ri" placeholder="Tulis balesan santai lu..."></textarea>
+            <div style="display:flex; gap:10px;">
+                <button class="btn-gold" style="flex:1;" onclick="sR()">KIRIM SOLUSI</button>
+                <button class="btn-gold" style="flex:1; background:none; border:1px solid #333; color:#555;" onclick="cM()">BATAL</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="nav-dock">
+        <div class="tab active" id="t-home" onclick="nv('home')">
+            <div class="s circle" style="border-radius:3px;"></div>
+            <span>HOME</span>
+        </div>
+        <div class="tab" id="t-global" onclick="nv('global')">
+            <div class="s circle"></div>
+            <span>GLOBAL</span>
+        </div>
+        <div class="tab" id="t-inbox" onclick="nv('inbox')">
+            <div class="s d"></div>
+            <span>INBOX</span>
+        </div>
+    </div>
+
+    <script>
+        document.onkeydown = function(e) { if(e.keyCode == 123 || (e.ctrlKey && e.shiftKey && (e.keyCode == 'I'.charCodeAt(0) || e.keyCode == 'U'.charCodeAt(0)))) return false; };
+
+        const quotes = [
+            "Tarik napas dulu, Bro. Gue tau lu lagi capek banget, tapi inget, badai ini cuma mau lewat, bukan mau tinggal. Jangan lupa, berikan keluh kesah anda di global nanti akan di respon oleh orang atau di beri solusi.",
+            "Dunia emang kadang nggak adil, tapi lu jauh lebih tangguh dari semua masalah yang lagi lu hadepin sekarang. Percaya sama diri sendiri, Bro! Jangan lupa, berikan keluh kesah anda di global nanti akan di respon oleh orang atau di beri solusi.",
+            "Jangan dengerin bacotan mereka yang cuma bisa nilai hasil tanpa tau gimana berdarah-darahnya lu di belakang layar. Lu keren udah sampe sini! Jangan lupa, berikan keluh kesah anda di global nanti akan di respon oleh orang atau di beri solusi.",
+            "Lu itu besi yang lagi ditempa api panas, Bro. Emang sakit, tapi itu yang bakal bikin lu jadi pedang paling tajam nantinya. Jangan lupa, berikan keluh kesah anda di global nanti akan di respon oleh orang atau di beri solusi.",
+            "Istirahat bentar nggak apa-apa kok, manusiawi. Asal jangan berhenti di tengah jalan ya. Gue dukung lu terus! Jangan lupa, berikan keluh kesah anda di global nanti akan di respon oleh orang atau di beri solusi.",
+            "Gue bangga banget liat lu masih berdiri tegak meski beban di pundak lu itu gila beratnya. Lu juara aslinya! Jangan lupa, berikan keluh kesah anda di global nanti akan di respon oleh orang atau di beri solusi.",
+            "Gagal hari ini bukan berarti gagal selamanya. Masih ada hari esok buat hajar balik semua keadaan ini, oke? Jangan lupa, berikan keluh kesah anda di global nanti akan di respon oleh orang atau di beri solusi.",
+            "Inget, ada senyum orang tua yang nunggu buat lu lukis pake kesuksesan lu. Jadi, jangan nyerah dulu, Bro! Jangan lupa, berikan keluh kesah anda di global nanti akan di respon oleh orang atau di beri solusi.",
+            "Masalah itu kerikil, lu itu raksasa. Injek aja terus maju, jangan biarin langkah lu berenti gara-gara hal sepele. Jangan lupa, berikan keluh kesah anda di global nanti akan di respon oleh orang atau di beri solusi.",
+            "Setiap air mata yang jatuh hari ini, bakal jadi mata air kebahagiaan lu nanti kalau lu tetep berjuang. Semangat! Jangan lupa, berikan keluh kesah anda di global nanti akan di respon oleh orang atau di beri solusi.",
+            "Lu itu arsitek buat nasib lu sendiri. Kalau pondasinya lagi retak, perbaiki, jangan malah dihancurin semuanya. Jangan lupa, berikan keluh kesah anda di global nanti akan di respon oleh orang atau di beri solusi."
+        ];
+
+        let qI = 0; let aID = null; let aS = "";
+
+        function goNext(cur, next) {
+            document.getElementById(cur).classList.remove('active');
+            document.getElementById(next).classList.add('active');
+        }
+
+        function saveUser() {
+            const n = document.getElementById('u-name').value;
+            if(!n) return alert("Isi nama dulu dong, Bro!");
+            localStorage.setItem('p_user', n);
+            goNext('setup-v', 'home-v');
+            nextQ();
+        }
+
+        function anim(s) {
+            const b = document.getElementById('w-target'); b.innerHTML = '';
+            s.split(' ').forEach((w, i) => {
+                const sp = document.createElement('span');
+                sp.innerText = w; sp.className = 'word';
+                sp.style.animationDelay = `${i * 0.1}s`;
+                b.appendChild(sp);
+            });
+        }
+
+        function nextQ() { anim(quotes[qI % quotes.length]); qI++; }
+
+        function nv(v) {
+            if(!localStorage.getItem('p_user')) return;
+            document.querySelectorAll('.view').forEach(f => f.classList.remove('active'));
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.getElementById(v + '-v').classList.add('active');
+            document.getElementById('t-' + v).classList.add('active');
+            if(v === 'global') rG(); if(v === 'inbox') rI();
+        }
+
+        function pG() {
+            const m = document.getElementById('g-in').value; if(!m) return;
+            let d = JSON.parse(localStorage.getItem('p_g')) || [];
+            d.push({id: Date.now(), u: localStorage.getItem('p_user'), msg: m, reps: []});
+            localStorage.setItem('p_g', JSON.stringify(d));
+            document.getElementById('g-in').value = ''; rG();
+        }
+
+        function rG() {
+            const l = document.getElementById('g-list');
+            let d = JSON.parse(localStorage.getItem('p_g')) || [];
+            l.innerHTML = d.reverse().map(i => `
+                <div class="card" onclick="oR(${i.id}, '${i.u}', '${i.msg}')">
+                    <b>${i.u}</b>
+                    <p>${i.msg}</p>
+                    <small style="font-size:0.55rem; color:#444; margin-top:8px; display:block;">${i.reps.length} Respon • Klik kasih solusi</small>
+                </div>
+            `).join('');
+        }
+
+        function oR(id, u, m) {
+            aID = id; aS = u;
+            document.getElementById('rt').innerText = "Kasih Solusi buat " + u;
+            document.getElementById('rd').innerText = '"' + m + '"';
+            document.getElementById('r-modal').style.display = 'block';
+        }
+
+        function sR() {
+            const r = document.getElementById('ri').value; if(!r) return;
+            let d = JSON.parse(localStorage.getItem('p_g')) || [];
+            const idx = d.findIndex(x => x.id === aID);
+            if(idx !== -1) {
+                d[idx].reps.push(r); localStorage.setItem('p_g', JSON.stringify(d));
+                let i = JSON.parse(localStorage.getItem('p_i')) || [];
+                i.push({from: localStorage.getItem('p_user'), to: aS, msg: r, ref: d[idx].msg});
+                localStorage.setItem('p_i', JSON.stringify(i));
+            }
+            cM(); rG();
+        }
+
+        function rI() {
+            const l = document.getElementById('i-list'); const myN = localStorage.getItem('p_user');
+            let d = JSON.parse(localStorage.getItem('p_i')) || [];
+            let f = d.filter(x => x.to === myN || x.from === myN);
+            l.innerHTML = f.reverse().map(i => `
+                <div class="card" style="border-left: 2px solid #ffd700">
+                    <small style="color:#ffd700; font-size:0.55rem;">${i.from} -> ${i.to}</small>
+                    <p style="margin:5px 0;">"${i.msg}"</p>
+                    <p style="font-size:0.6rem; color:#444;">Ref: ${i.ref}</p>
+                    <button class="btn-gold" style="padding:4px 8px; font-size:0.5rem; margin-top:8px;" onclick="oR(${Date.now()}, '${i.from === myN ? i.to : i.from}', '${i.msg}')">BALAS LAGI</button>
+                </div>
+            `).join('');
+        }
+
+        function cM() { document.getElementById('r-modal').style.display = 'none'; document.getElementById('ri').value = ''; }
+
+        const cv = document.getElementById('web-canvas'); const ct = cv.getContext('2d');
+        cv.width = window.innerWidth; cv.height = window.innerHeight;
+        let p = []; for(let i=0; i<40; i++) p.push({x:Math.random()*cv.width, y:Math.random()*cv.height, vx:(Math.random()-0.5)*0.6, vy:(Math.random()-0.5)*0.6});
+        function dw() {
+            ct.clearRect(0,0,cv.width,cv.height); ct.strokeStyle = "rgba(191,149,63,0.15)";
+            p.forEach(a => {
+                a.x+=a.vx; a.y+=a.vy; if(a.x<0||a.x>cv.width) a.vx*=-1; if(a.y<0||a.y>cv.height) a.vy*=-1;
+                p.forEach(b => { let d = Math.hypot(a.x-b.x, a.y-b.y); if(d<140) { ct.beginPath(); ct.moveTo(a.x,a.y); ct.lineTo(b.x,b.y); ct.stroke(); } });
+            });
+            requestAnimationFrame(dw);
+        }
+        dw();
+    </script>
+</body>
+</html>
